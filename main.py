@@ -5,9 +5,10 @@ import os
 from datetime import datetime
 import pandas as pd  # Necesario para convertir las fechas en SARIMAX
 import statsmodels.api as sm
-
+from flask_cors import CORS
 
 app = Flask(__name__)
+CORS(app)
 current_dir = os.path.dirname(os.path.abspath(__file__))
 
 def load_model(variable_name):
@@ -47,7 +48,7 @@ def predict():
     variable_name = data['variable_name']  # Variable enviada desde el frontend
     variable_value = data['variable_value']  # Valor de la variable enviada desde el frontend
 
-    if variable_name in ['aguacate', 'bitcoin', 'SP500Stock']:
+    if variable_name in ['avocado', 'bitcoin', 'SP500Stock']:
         if isinstance(variable_value, str):
             variable_value = datetime.strptime(variable_value, '%Y-%m-%d')
         else:
