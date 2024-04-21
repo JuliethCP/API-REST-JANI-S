@@ -31,6 +31,20 @@ def predictS(variable_name, input_date):
     prediction = process_SARIMAX(model, input_date)
     return prediction
 
+def predict_house_model(taxvaluedollarcnt, taxamount):
+    # Carga el modelo house
+    model_path = os.path.join(current_dir, 'models', 'house_model.pkl')
+    if not os.path.exists(model_path):
+        return jsonify({'error': 'Modelo para la variable house no encontrado'}), 404
+
+    # Carga el modelo asociado a la variable
+    model = joblib.load(model_path)
+
+    # Realiza la predicción
+    prediction = model.predict([[taxvaluedollarcnt, taxamount]])
+
+    return prediction[0]
+
 def process_SARIMAX(model, input_date):
     try:
         # Convertir la fecha de entrada a un objeto datetime
@@ -44,10 +58,12 @@ def process_SARIMAX(model, input_date):
 
 @app.route('/predict', methods=['POST'])
 def predict():
+    # Obtén los datos de la solicitud
     data = request.get_json()
     variable_name = data['variable_name']  # Variable enviada desde el frontend
     variable_value = data['variable_value']  # Valor de la variable enviada desde el frontend
 
+    # Si la variable es una de las que requiere un timestamp
     if variable_name in ['avocado', 'bitcoin', 'SP500Stock']:
         if isinstance(variable_value, str):
             variable_value = datetime.strptime(variable_value, '%Y-%m-%d')
@@ -60,21 +76,36 @@ def predict():
             return jsonify({'prediction': prediction})
         else:
             return jsonify({'error': 'Error al hacer la predicción'}), 500
+    elif variable_name == 'house':
+        variable_value = data['variable_value']
+        # Asegúrate de que las dos variables necesarias estén presentes en la solicitud
+        if 'taxvaluedollarcnt' not in variable_value or 'taxamount' not in variable_value:
+            return jsonify({'error': 'Se requieren taxvaluedollarcnt y taxamount para la variable house'}), 400
+
+        taxvaluedollarcnt = variable_value['taxvaluedollarcnt']
+        taxamount = variable_value['taxamount']
+
+        # Realiza la predicción
+        prediction = predict_house_model(taxvaluedollarcnt, taxamount)
+
+        return jsonify({'prediction': prediction})
     else:
-        # Convierte el valor de la variable a un array bidimensional de una sola fila
-        variable_value = np.array([[1, float(variable_value)]])
-        # Verifica si hay un modelo asociado a la variable
-        model_path = os.path.join(current_dir, 'models', f'{variable_name}_model.pkl')
-        if not os.path.exists(model_path):
-            return jsonify({'error': f'Modelo para la variable {variable_name} no encontrado'}), 404
+        # Si no es una de esas variables, conviértela en un array bidimensional de una sola fila
+        variable_value = np.array([[float(variable_value)]])
 
-        model = joblib.load(model_path)
+    # Verifica si hay un modelo asociado a la variable
+    model_path = os.path.join(current_dir, 'models', f'{variable_name}_model.pkl')
+    if not os.path.exists(model_path):
+        return jsonify({'error': f'Modelo para la variable {variable_name} no encontrado'}), 404
 
-        try:
-            prediction = model.predict(variable_value)
-            return jsonify({'prediction': prediction[0]})
-        except Exception as e:
-            return jsonify({'error': f'Error al hacer la predicción con el modelo {variable_name}: {e}'}), 500
+    # Carga el modelo asociado a la variable
+    model = joblib.load(model_path)
+
+    # Realiza la predicción
+    prediction = model.predict(variable_value)
+
+    # Devuelve la predicción
+    return jsonify({'prediction': prediction[0]})
 
 
 if __name__ == '__main__':
