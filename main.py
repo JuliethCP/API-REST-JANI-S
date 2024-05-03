@@ -77,10 +77,69 @@ def predict():
             return jsonify({'prediction': prediction})
         else:
             return jsonify({'error': 'Error al hacer la predicción'}), 500
+        
     elif variable_name == 'auto':
         #este recibe 2 variables año y kilometrso recorridos (ej 2022 y 500000 )
         variable_value = data['variable_value']
+        if 'Year' not in variable_value or 'Kms_Driven' not in variable_value:
+            return jsonify({'error': 'Se requieren Year  y Kms_Driven para la variable auto'}), 400
         
+        Year = variable_value['Year']
+        Kms_Driven = variable_value['Kms_Driven']
+
+        model_path = os.path.join(current_dir, 'models', 'Auto.pkl')
+        if not os.path.exists(model_path):
+            return jsonify({'error': 'Modelo para la variable house no encontrado'}), 404
+
+         # Carga el modelo asociado a la variable
+        model = joblib.load(model_path)
+
+         # Realiza la predicción
+        prediction = model.predict([[Year, Kms_Driven]])
+
+        return jsonify({'prediction': prediction[0]})
+    
+    elif variable_name == 'crimes':
+        #este recibe 2 variables año y kilometrso recorridos (ej 2022 y 500000 )
+        variable_value = data['variable_value']
+        if 'year' not in variable_value or 'month' not in variable_value:
+            return jsonify({'error': 'Se requieren year  y month para la variable crimes'}), 400
+        
+        Year = variable_value['year']
+        Month = variable_value['month']
+
+        model_path = os.path.join(current_dir, 'models', 'Crimes.pkl')
+        if not os.path.exists(model_path):
+            return jsonify({'error': 'Modelo para la variable house no encontrado'}), 404
+
+         # Carga el modelo asociado a la variable
+        model = joblib.load(model_path)
+
+         # Realiza la predicción
+        prediction = model.predict([[Year, Month]])
+
+        return jsonify({'prediction': prediction[0]})
+    
+    elif variable_name == 'covid':
+        #este recibe 2 variables año y kilometrso recorridos (ej 2022 y 500000 )
+        variable_value = data['variable_value']
+        if 'Confirmed' not in variable_value or 'Deaths' not in variable_value:
+            return jsonify({'error': 'Se requieren Confirmed  y Deaths para la variable covid'}), 400
+        
+        Confirmed = variable_value['Confirmed']
+        Deaths = variable_value['Deaths']
+
+        model_path = os.path.join(current_dir, 'models', 'Covid.pkl')
+        if not os.path.exists(model_path):
+            return jsonify({'error': 'Modelo para la variable house no encontrado'}), 404
+
+         # Carga el modelo asociado a la variable
+        model = joblib.load(model_path)
+
+         # Realiza la predicción
+        prediction = model.predict([[Confirmed, Deaths]])
+
+        return jsonify({'prediction': prediction[0]})
 
 
     elif variable_name == 'house':
@@ -96,6 +155,7 @@ def predict():
         prediction = predict_house_model(taxvaluedollarcnt, taxamount)
 
         return jsonify({'prediction': prediction})
+    
     elif variable_name == 'movie':
         # Obtener el ID del usuario de la solicitud
         userId = variable_value
