@@ -6,6 +6,7 @@ from datetime import datetime
 import pandas as pd  # Necesario para convertir las fechas en SARIMAX
 import statsmodels.api as sm
 from flask_cors import CORS
+import pickle
 
 app = Flask(__name__)
 CORS(app)
@@ -76,6 +77,7 @@ def predict():
             return jsonify({'prediction': prediction})
         else:
             return jsonify({'error': 'Error al hacer la predicción'}), 500
+        
     elif variable_name == 'house':
         variable_value = data['variable_value']
         # Asegúrate de que las dos variables necesarias estén presentes en la solicitud
@@ -89,6 +91,42 @@ def predict():
         prediction = predict_house_model(taxvaluedollarcnt, taxamount)
 
         return jsonify({'prediction': prediction})
+    
+    elif variable_name == 'stroke':
+
+        # Verifica si hay un modelo asociado a la variable
+        model_path = os.path.join(current_dir, 'models', f'{variable_name}_model.pkl')
+        if not os.path.exists(model_path):
+            return jsonify({'error': f'Modelo para la variable {variable_name} no encontrado'}), 404
+
+        model = pickle.load(open(model_path, 'rb'))
+
+        # Extrae los valores de las características del usuario del JSON enviado
+        gender = float(variable_value['gender'])
+        age = float(variable_value['age'])
+        hypertension = float(variable_value['hypertension'])
+        heart_disease = float(variable_value['heart_disease'])
+        ever_married = float(variable_value['ever_married'])
+        work_type = float(variable_value['work_type'])
+        Residence_type = float(variable_value['Residence_type'])
+        avg_glucose_level = float(variable_value['avg_glucose_level'])
+        bmi = float(variable_value['bmi'])
+        smoking_status = float(variable_value['smoking_status'])
+
+        # Crea un numpy array con los datos de entrada del usuario
+        user_input = np.array([[gender, age, hypertension, heart_disease, ever_married, work_type, Residence_type,
+                                avg_glucose_level, bmi, smoking_status]])
+
+        # Realiza la predicción de la probabilidad de accidente cerebrovascular
+        stroke_probability = model.predict_proba(user_input)[0][1]
+
+        # Devuelve el resultado de la predicción
+        if stroke_probability > 0.5:
+            prediction_result = {'stroke_risk': 'Alto', 'probability': stroke_probability}
+        else:
+            prediction_result = {'stroke_risk': 'Bajo', 'probability': stroke_probability}
+
+        return jsonify(prediction_result)
     else:
         # Si no es una de esas variables, conviértela en un array bidimensional de una sola fila
         variable_value = np.array([[float(variable_value)]])
