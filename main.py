@@ -7,6 +7,7 @@ import pandas as pd  # Necesario para convertir las fechas en SARIMAX
 import statsmodels.api as sm
 from flask_cors import CORS
 import pickle
+import pickle
 
 app = Flask(__name__)
 CORS(app)
@@ -78,6 +79,71 @@ def predict():
         else:
             return jsonify({'error': 'Error al hacer la predicción'}), 500
         
+        
+    elif variable_name == 'auto':
+        #este recibe 2 variables año y kilometrso recorridos (ej 2022 y 500000 )
+        variable_value = data['variable_value']
+        if 'Year' not in variable_value or 'Kms_Driven' not in variable_value:
+            return jsonify({'error': 'Se requieren Year  y Kms_Driven para la variable auto'}), 400
+        
+        Year = variable_value['Year']
+        Kms_Driven = variable_value['Kms_Driven']
+
+        model_path = os.path.join(current_dir, 'models', 'Auto.pkl')
+        if not os.path.exists(model_path):
+            return jsonify({'error': 'Modelo para la variable house no encontrado'}), 404
+
+         # Carga el modelo asociado a la variable
+        model = joblib.load(model_path)
+
+         # Realiza la predicción
+        prediction = model.predict([[Year, Kms_Driven]])
+
+        return jsonify({'prediction': prediction[0]})
+    
+    elif variable_name == 'crimes':
+        #este recibe 2 variables año y kilometrso recorridos (ej 2022 y 500000 )
+        variable_value = data['variable_value']
+        if 'year' not in variable_value or 'month' not in variable_value:
+            return jsonify({'error': 'Se requieren year  y month para la variable crimes'}), 400
+        
+        Year = variable_value['year']
+        Month = variable_value['month']
+
+        model_path = os.path.join(current_dir, 'models', 'Crimes.pkl')
+        if not os.path.exists(model_path):
+            return jsonify({'error': 'Modelo para la variable house no encontrado'}), 404
+
+         # Carga el modelo asociado a la variable
+        model = joblib.load(model_path)
+
+         # Realiza la predicción
+        prediction = model.predict([[Year, Month]])
+
+        return jsonify({'prediction': prediction[0]})
+    
+    elif variable_name == 'covid':
+        #este recibe 2 variables año y kilometrso recorridos (ej 2022 y 500000 )
+        variable_value = data['variable_value']
+        if 'Confirmed' not in variable_value or 'Deaths' not in variable_value:
+            return jsonify({'error': 'Se requieren Confirmed  y Deaths para la variable covid'}), 400
+        
+        Confirmed = variable_value['Confirmed']
+        Deaths = variable_value['Deaths']
+
+        model_path = os.path.join(current_dir, 'models', 'Covid.pkl')
+        if not os.path.exists(model_path):
+            return jsonify({'error': 'Modelo para la variable house no encontrado'}), 404
+
+         # Carga el modelo asociado a la variable
+        model = joblib.load(model_path)
+
+         # Realiza la predicción
+        prediction = model.predict([[Confirmed, Deaths]])
+
+        return jsonify({'prediction': prediction[0]})
+
+
     elif variable_name == 'house':
         variable_value = data['variable_value']
         # Asegúrate de que las dos variables necesarias estén presentes en la solicitud
@@ -91,6 +157,78 @@ def predict():
         prediction = predict_house_model(taxvaluedollarcnt, taxamount)
 
         return jsonify({'prediction': prediction})
+    
+    elif variable_name == 'movie':
+        # Obtener el ID del usuario de la solicitud
+        userId = variable_value
+
+        model_path = os.path.join(current_dir, 'models', f'movie_recommendation_model.pkl')
+        if not os.path.exists(model_path):
+            return jsonify({'error': f'Modelo para la variable {variable_name} no encontrado'}), 404
+
+        # Carga el modelo asociado a la variable
+        model = joblib.load(model_path)
+
+        if model is None:
+            return jsonify({'error': 'Error al cargar el modelo de recomendación de películas'}), 500
+
+        # Realizar predicciones para el usuario especificado
+        predictions = []
+        for movieId in range(1, 149532):  # Rango de IDs de películas, ajusta según tus datos
+            prediction = model.predict(userId, movieId)
+            predictions.append((movieId, prediction.est))
+
+        # Ordenar las predicciones y obtener las 10 mejores
+        predictions.sort(key=lambda x: x[1], reverse=True)
+        top_movies = predictions[:10]
+
+        # Formatear las recomendaciones
+        recommendations = []
+        for movie in top_movies:
+            movieId, estimated_rating = movie
+            # Aquí podrías cargar los títulos de las películas desde un archivo CSV si lo deseas
+            movie_title = f"Movie {movieId}"  # Cambia esto según tus datos
+            recommendations.append({'movie_title': movie_title, 'estimated_rating': estimated_rating})
+
+        # Devolver las recomendaciones
+        return jsonify({'recommendations': recommendations})
+        # Realiza la predicción dependiendo de la variable
+
+    elif variable_name == 'stroke':
+
+        # Verifica si hay un modelo asociado a la variable
+        model_path = os.path.join(current_dir, 'models', f'{variable_name}_model.pkl')
+        if not os.path.exists(model_path):
+            return jsonify({'error': f'Modelo para la variable {variable_name} no encontrado'}), 404
+
+        model = pickle.load(open(model_path, 'rb'))
+
+        # Extrae los valores de las características del usuario del JSON enviado
+        gender = float(variable_value['gender'])
+        age = float(variable_value['age'])
+        hypertension = float(variable_value['hypertension'])
+        heart_disease = float(variable_value['heart_disease'])
+        ever_married = float(variable_value['ever_married'])
+        work_type = float(variable_value['work_type'])
+        Residence_type = float(variable_value['Residence_type'])
+        avg_glucose_level = float(variable_value['avg_glucose_level'])
+        bmi = float(variable_value['bmi'])
+        smoking_status = float(variable_value['smoking_status'])
+
+        # Crea un numpy array con los datos de entrada del usuario
+        user_input = np.array([[gender, age, hypertension, heart_disease, ever_married, work_type, Residence_type,
+                                avg_glucose_level, bmi, smoking_status]])
+
+        # Realiza la predicción de la probabilidad de accidente cerebrovascular
+        stroke_probability = model.predict_proba(user_input)[0][1]
+
+        # Devuelve el resultado de la predicción
+        if stroke_probability > 0.5:
+            prediction_result = {'stroke_risk': 'Alto', 'probability': stroke_probability}
+        else:
+            prediction_result = {'stroke_risk': 'Bajo', 'probability': stroke_probability}
+
+        return jsonify(prediction_result)
     
     elif variable_name == 'stroke':
 
