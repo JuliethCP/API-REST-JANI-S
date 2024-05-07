@@ -143,7 +143,34 @@ def predict():
 
         return jsonify({'prediction': prediction[0]})
 
+    elif variable_name == 'company':
+        #este recibe 2 variables año y kilometrso recorridos (ej 2022 y 500000 )
+        variable_value = data['variable_value']
+        if 'Confirmed' not in variable_value or 'Deaths' not in variable_value:
+            return jsonify({'error': 'Se requieren Confirmed  y Deaths para la variable covid'}), 400
+        
+        Tenure = variable_value['tenure']
+        MonthlyCharges = variable_value['MonthlyCharges']
+        Contract = variable_value['Contract']
+        InternetService = variable_value['InternetService']
+        TechSupport = variable_value['TechSupport']
 
+        model_path = os.path.join(current_dir, 'models', 'Company.pkl')
+        if not os.path.exists(model_path):
+            return jsonify({'error': 'Modelo para la variable company no encontrado'}), 404
+
+         # Carga el modelo asociado a la variable
+        model = joblib.load(model_path)
+
+         # Realiza la predicción
+        prediction = model.predict([[Tenure, MonthlyCharges,Contract,InternetService,TechSupport]])
+
+        if prediction == 0:
+            return jsonify({'El cliente NO se pasará de compañía'})
+        else:
+            
+            return jsonify({'El cliente se pasará de compañía'})
+       
     elif variable_name == 'house':
         variable_value = data['variable_value']
         # Asegúrate de que las dos variables necesarias estén presentes en la solicitud
