@@ -123,6 +123,27 @@ def predict():
 
         return jsonify({'prediction': prediction[0]})
     
+    elif variable_name == 'company2':
+        
+        variable_value = data['variable_value']
+        
+        Tenure = variable_value['tenure']
+        MonthlyCharges = variable_value['MonthlyCharges']
+        Contract = variable_value['Contract']
+        InternetService = variable_value['InternetService']
+        TechSupport = variable_value['TechSupport']
+
+        model_path = os.path.join(current_dir, 'models', 'Company.pkl')
+        if not os.path.exists(model_path):
+            return jsonify({'error': 'Modelo para la variable house no encontrado'}), 404
+
+         # Carga el modelo asociado a la variable
+        model = joblib.load(model_path)
+
+         # Realiza la predicción
+        prediction = model.predict([[Year, Month]])
+
+        return jsonify({'prediction': prediction[0]})
     elif variable_name == 'covid':
         #este recibe 2 variables año y kilometrso recorridos (ej 2022 y 500000 )
         variable_value = data['variable_value']
@@ -158,6 +179,37 @@ def predict():
         prediction = predict_house_model(taxvaluedollarcnt, taxamount)
 
         return jsonify({'prediction': prediction})
+    
+    elif variable_name == 'company':
+
+        # Verifica si hay un modelo asociado a la variable
+        model_path = os.path.join(current_dir, 'models', f'{variable_name}_model.pkl')
+        if not os.path.exists(model_path):
+            return jsonify({'error': f'Modelo para la variable {variable_name} no encontrado'}), 404
+
+        model = pickle.load(open(model_path, 'rb'))
+
+        # Extrae los valores de las variables de entrada del diccionario
+        tenure = float(variable_value['tenure'])
+        monthly_charges = float(variable_value['MonthlyCharges'])
+        contract = float(variable_value['Contract'])
+        internet_service = float(variable_value['InternetService'])
+        tech_support = float(variable_value['TechSupport'])
+
+        # Crea un numpy array con los datos de entrada del usuario
+        user_input = np.array([[tenure, monthly_charges, contract, internet_service, tech_support]])
+
+        # Realiza la predicción del modelo
+        company_probability = model.predict_proba(user_input)[0][1]
+
+    # Devuelve el resultado de la predicción
+        if company_probability > 0.6:
+            prediction_result = {'El cliente  se pasará de compañía ya que su probabilidad supera el 0,6%': company_probability}
+        else:
+            prediction_result = {'El cliente no pasará de compañía debido a que su probabilidad de hacerlo es de ': company_probability}
+
+        return jsonify(prediction_result)
+
    
     elif variable_name == 'stroke':
 
