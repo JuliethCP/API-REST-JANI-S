@@ -81,24 +81,26 @@ def predict():
             return jsonify({'error': 'Error al hacer la predicción'}), 500
         
         
-    elif variable_name == 'auto':
+    elif variable_name == 'automobile':
         #este recibe 2 variables año y kilometrso recorridos (ej 2022 y 500000 )
         variable_value = data['variable_value']
-        if 'Year' not in variable_value or 'Kms_Driven' not in variable_value:
-            return jsonify({'error': 'Se requieren Year  y Kms_Driven para la variable auto'}), 400
+        if 'year' not in variable_value or 'kilometers' not in variable_value:
+            return jsonify({'error': 'Se requieren Year  y Kilometers para la variable auto'}), 400
         
-        Year = variable_value['Year']
-        Kms_Driven = variable_value['Kms_Driven']
+        year = variable_value['year']
+        kilometers = variable_value['kilometers']
 
-        model_path = os.path.join(current_dir, 'models', 'Auto.pkl')
+        model_path = os.path.join(current_dir, 'models', 'automobile_model.pkl')
         if not os.path.exists(model_path):
-            return jsonify({'error': 'Modelo para la variable house no encontrado'}), 404
+            return jsonify({'error': 'Modelo para la variable auto no encontrado'}), 404
 
          # Carga el modelo asociado a la variable
         model = joblib.load(model_path)
 
          # Realiza la predicción
-        prediction = model.predict([[Year, Kms_Driven]])
+         
+    # Realiza la predicción
+        prediction = model.predict([[year, kilometers]])
 
         return jsonify({'prediction': prediction[0]})
     
@@ -108,8 +110,8 @@ def predict():
         if 'year' not in variable_value or 'month' not in variable_value:
             return jsonify({'error': 'Se requieren year  y month para la variable crimes'}), 400
         
-        Year = variable_value['year']
-        Month = variable_value['month']
+        year = variable_value['year']
+        month = variable_value['month']
 
         model_path = os.path.join(current_dir, 'models', 'Crimes.pkl')
         if not os.path.exists(model_path):
@@ -119,39 +121,18 @@ def predict():
         model = joblib.load(model_path)
 
          # Realiza la predicción
-        prediction = model.predict([[Year, Month]])
+        prediction = model.predict([[year, month]])
 
         return jsonify({'prediction': prediction[0]})
     
-    elif variable_name == 'company2':
-        
-        variable_value = data['variable_value']
-        
-        Tenure = variable_value['tenure']
-        MonthlyCharges = variable_value['MonthlyCharges']
-        Contract = variable_value['Contract']
-        InternetService = variable_value['InternetService']
-        TechSupport = variable_value['TechSupport']
-
-        model_path = os.path.join(current_dir, 'models', 'Company.pkl')
-        if not os.path.exists(model_path):
-            return jsonify({'error': 'Modelo para la variable house no encontrado'}), 404
-
-         # Carga el modelo asociado a la variable
-        model = joblib.load(model_path)
-
-         # Realiza la predicción
-        prediction = model.predict([[Year, Month]])
-
-        return jsonify({'prediction': prediction[0]})
     elif variable_name == 'covid':
         #este recibe 2 variables año y kilometrso recorridos (ej 2022 y 500000 )
         variable_value = data['variable_value']
-        if 'Confirmed' not in variable_value or 'Deaths' not in variable_value:
+        if 'confirmed' not in variable_value or 'deaths' not in variable_value:
             return jsonify({'error': 'Se requieren Confirmed  y Deaths para la variable covid'}), 400
         
-        Confirmed = variable_value['Confirmed']
-        Deaths = variable_value['Deaths']
+        confirmed = variable_value['confirmed']
+        deaths = variable_value['deaths']
 
         model_path = os.path.join(current_dir, 'models', 'Covid.pkl')
         if not os.path.exists(model_path):
@@ -161,7 +142,7 @@ def predict():
         model = joblib.load(model_path)
 
          # Realiza la predicción
-        prediction = model.predict([[Confirmed, Deaths]])
+        prediction = model.predict([[confirmed, deaths]])
 
         return jsonify({'prediction': prediction[0]})
 
