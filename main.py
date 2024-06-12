@@ -7,7 +7,10 @@ import pandas as pd  # Necesario para convertir las fechas en SARIMAX
 import statsmodels.api as sm
 from flask_cors import CORS
 import pickle
-import pickle
+import base64
+from io import BytesIO
+from PIL import Image
+import cv2
 
 app = Flask(__name__)
 CORS(app)
@@ -113,7 +116,7 @@ def predict():
         year = variable_value['year']
         month = variable_value['month']
 
-        model_path = os.path.join(current_dir, 'models', 'Crimes.pkl')
+        model_path = os.path.join(current_dir, 'models', 'crimes_model.pkl')
         if not os.path.exists(model_path):
             return jsonify({'error': 'Modelo para la variable house no encontrado'}), 404
 
@@ -134,7 +137,7 @@ def predict():
         confirmed = variable_value['confirmed']
         deaths = variable_value['deaths']
 
-        model_path = os.path.join(current_dir, 'models', 'Covid.pkl')
+        model_path = os.path.join(current_dir, 'models', 'covid_model.pkl')
         if not os.path.exists(model_path):
             return jsonify({'error': 'Modelo para la variable house no encontrado'}), 404
 
@@ -185,9 +188,10 @@ def predict():
 
     # Devuelve el resultado de la predicción
         if company_probability > 0.6:
-            prediction_result = {'El cliente  se pasará de compañía ya que su probabilidad supera el 0,6%': company_probability}
+        
+            prediction_result = {'prediction' : company_probability}
         else:
-            prediction_result = {'El cliente no pasará de compañía debido a que su probabilidad de hacerlo es de ': company_probability}
+            prediction_result = {'prediction': company_probability}
 
         return jsonify(prediction_result)
 
@@ -245,6 +249,31 @@ def predict():
     # Devuelve la predicción
     return jsonify({'prediction': prediction[0]})
 
+@app.route('/emotion', methods=['POST'])
+def emotion():
+    try:
+        # Obtén los datos de la solicitud
+        data = request.get_json()
+        image_base64 = data['image']
 
+        # Decodifica la imagen base64
+        image_data = base64.b64decode(image_base64.split(',')[1])
+
+        # Convertir a imagen usando PIL
+        image = Image.open(BytesIO(image_data))
+
+        # Guardar la imagen en un archivo temporal
+        temp_image_path = 'temp_image.png'
+        image.save(temp_image_path)
+
+        # Para verificar los datos recibidos
+        print(f"Image saved to {temp_image_path} with size: {image.size}")
+
+        return jsonify({"emotion": "example_emotion"})
+    except Exception as e:
+        print(f"Error processing image: {e}")
+        return jsonify({"error": "Failed to process image"}), 500
+    
+    
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000)
