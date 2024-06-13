@@ -11,10 +11,12 @@ import base64
 from io import BytesIO
 from PIL import Image
 import cv2
+import tensorflow as tf
 
 app = Flask(__name__)
 CORS(app)
 current_dir = os.path.dirname(os.path.abspath(__file__))
+
 
 def load_model(variable_name):
     model_filename = f"{variable_name}_model.pkl"
@@ -249,6 +251,38 @@ def predict():
     # Devuelve la predicción
     return jsonify({'prediction': prediction[0]})
 
+def preprocess_image(image, target_size=(48, 48)):
+    """
+    Preprocesses an image for emotion recognition.
+
+    This function performs the following preprocessing steps:
+    1. Converts the image to grayscale.
+    2. Resizes the image to the target size.
+    3. Normalizes pixel values to the range [0, 1].
+    4. Converts the image to a tensor and expands its dimensions to match the input shape of the model.
+
+    Args:
+        image (numpy.ndarray): An image array of shape (height, width, channels).
+        target_size (tuple of int, optional): The target size for resizing the image. Defaults to (48, 48).
+
+    Returns:
+        tensorflow.Tensor: A tensor of shape (1, target_size[0], target_size[1], 1) containing the preprocessed image.
+    """
+    # Convert to grayscale
+    grayscale_image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+
+    # Resize the image
+    resized_image = cv2.resize(grayscale_image, target_size)
+
+    # Normalize the image
+    normalized_image = resized_image / 255.0
+
+    # Convert image to a tensor and expand dimensions to match the input shape of the model
+    expanded_image = tf.expand_dims(tf.convert_to_tensor(normalized_image, dtype=tf.float32), axis=-1)
+    expanded_image = tf.expand_dims(expanded_image, axis=0)  # Add batch dimension
+
+    return expanded_image
+
 @app.route('/emotion', methods=['POST'])
 def emotion():
     try:
@@ -262,14 +296,25 @@ def emotion():
         # Convertir a imagen usando PIL
         image = Image.open(BytesIO(image_data))
 
-        # Guardar la imagen en un archivo temporal
-        temp_image_path = 'temp_image.png'
-        image.save(temp_image_path)
+        # Convertir imagen PIL a numpy array
+        image = np.array(image)
 
-        # Para verificar los datos recibidos
-        print(f"Image saved to {temp_image_path} with size: {image.size}")
+        # Preprocesar la imagen
+        processed_image = preprocess_image(image)
 
-        return jsonify({"emotion": "example_emotion"})
+        # Cargar el modelo (en formato .h5)
+        model_path = os.path.join('emotions.h5')
+        model = tf.keras.models.load_model(model_path)
+
+        # Hacer la predicción
+        predictions = model.predict(processed_image)
+        predicted_emotion = np.argmax(predictions)
+
+        # Mapear el índice de la predicción a una etiqueta de emoción
+        label_mapping = {0: 'angry', 1: 'happy', 2: 'neutral', 3: 'sad', 4: 'surprise'}
+        emotion_label = label_mapping[predicted_emotion]
+
+        return jsonify({"emotion": emotion_label})
     except Exception as e:
         print(f"Error processing image: {e}")
         return jsonify({"error": "Failed to process image"}), 500
