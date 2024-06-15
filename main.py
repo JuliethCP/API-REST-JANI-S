@@ -283,6 +283,7 @@ def preprocess_image(image, target_size=(48, 48)):
 
     return expanded_image
 
+
 @app.route('/emotion', methods=['POST'])
 def emotion():
     try:
@@ -315,6 +316,59 @@ def emotion():
         emotion_label = label_mapping[predicted_emotion]
 
         return jsonify({"emotion": emotion_label})
+    except Exception as e:
+        print(f"Error processing image: {e}")
+        return jsonify({"error": "Failed to process image"}), 500
+    
+    
+@app.route('/weapons', methods=['POST'])
+def weapons():
+    try:
+        class_names = [
+            'Arma de fuego corta',
+            'Arma de fuego larga',
+            'Munición',
+            'Explosivo',
+            'Cuchillo',
+            'Palo',
+            'Piedra',
+            'Botella',
+            'Otro',
+            'Ninguno'
+        ]
+        # Load the model with custom object handling
+        model_path = os.path.join('weapons.h5')
+        custom_objects = {'GlorotUniform': tf.keras.initializers.glorot_uniform}
+        model = tf.keras.models.load_model(model_path, custom_objects=custom_objects)
+
+        # Get the data from the request
+        data = request.get_json()
+        image_base64 = data['image']
+
+        # Decode the base64 image
+        image_data = base64.b64decode(image_base64.split(',')[1])
+
+        # Convert to image using PIL
+        image = Image.open(BytesIO(image_data))
+
+        # Preprocess the image for the model
+        image = image.resize((224, 224))
+        image_array = np.array(image)
+        image_array = np.expand_dims(image_array, axis=0)
+
+        # Make a prediction
+        predictions = model.predict(image_array)
+
+        # Get the predicted class
+        predicted_class = np.argmax(predictions)
+
+        # Get the class name
+        class_name = class_names[predicted_class]
+
+        # Count the number of objects of the predicted class (assumed to be 1)
+        object_count = 1
+
+        return jsonify({"class": class_name, "count": object_count})
     except Exception as e:
         print(f"Error processing image: {e}")
         return jsonify({"error": "Failed to process image"}), 500
