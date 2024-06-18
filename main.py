@@ -351,10 +351,17 @@ def weapons():
         # Convert to image using PIL
         image = Image.open(BytesIO(image_data))
 
+        # Convert the image to RGB if it has an alpha channel
+        if image.mode == 'RGBA':
+            image = image.convert('RGB')
+
         # Preprocess the image for the model
         image = image.resize((224, 224))
         image_array = np.array(image)
         image_array = np.expand_dims(image_array, axis=0)
+
+        # Ensure the image array has the correct shape and data type
+        image_array = image_array.astype('float32') / 255.0
 
         # Make a prediction
         predictions = model.predict(image_array)
